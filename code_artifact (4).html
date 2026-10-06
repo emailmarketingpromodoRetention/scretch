@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Зішкреби та виграй | Dnipro-M</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#ff5c00',
+                            orangeHover: '#e05000',
+                            black: '#111111',
+                            dark: '#1a1a1a',
+                            metalLight: '#4b5056',
+                            metalDark: '#2a2d32',
+                        }
+                    },
+                    boxShadow: {
+                        'metal': '0 10px 20px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.1)',
+                        'inner-dark': 'inset 0 4px 10px rgba(0,0,0,0.9)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #111;
+            /* Industrial diamond plate pattern */
+            background-image: 
+                linear-gradient(45deg, #161616 25%, transparent 25%, transparent 75%, #161616 75%, #161616),
+                linear-gradient(45deg, #161616 25%, transparent 25%, transparent 75%, #161616 75%, #161616);
+            background-size: 14px 14px;
+            background-position: 0 0, 7px 7px;
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .metal-plate {
+            background: linear-gradient(135deg, var(--tw-colors-brand-metalLight), var(--tw-colors-brand-metalDark));
+            border: 2px solid #5a5f66;
+            border-bottom-color: #1a1c1e;
+            border-right-color: #1a1c1e;
+            position: relative;
+        }
+
+        .rivet {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 35% 35%, #999, #222);
+            border-radius: 50%;
+            box-shadow: inset 0 -1px 2px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.3);
+            border: 1px solid #111;
+        }
+        .rivet::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 15%;
+            width: 70%; height: 2px;
+            background: #111;
+            transform: translateY(-50%) rotate(45deg);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .rivet-tl { top: 12px; left: 12px; }
+        .rivet-tr { top: 12px; right: 12px; transform: rotate(30deg); }
+        .rivet-bl { bottom: 12px; left: 12px; transform: rotate(75deg); }
+        .rivet-br { bottom: 12px; right: 12px; transform: rotate(-15deg); }
+
+        /* Scratch Card Area */
+        #scratch-container {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            height: 180px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            touch-action: none; /* Crucial for preventing scroll on mobile */
+            background-color: #000;
+        }
+
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+            transition: opacity 0.8s ease-out;
+        }
+
+        .canvas-fade-out {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        /* Buttons */
+        .btn-orange-heavy {
+            background: linear-gradient(to bottom, var(--tw-colors-brand-orange), #c43500);
+            border: 2px solid #ff7333;
+            border-bottom: 4px solid #731e07;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+        }
+        .btn-orange-heavy:active:not(:disabled) {
+            transform: translateY(2px);
+            border-bottom: 2px solid #731e07;
+        }
+        .btn-orange-heavy:disabled {
+            filter: grayscale(100%);
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            border-bottom: 4px solid #731e07;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <header class="w-full bg-brand-black border-b-4 border-brand-orange shadow-lg relative z-20">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-center relative">
+            <div class="absolute left-4 bg-brand-orange text-white font-black text-sm sm:text-base px-2 py-1 rounded-sm tracking-tighter shadow-md">
+                DNIPRO-M
+            </div>
+            <h1 class="text-lg sm:text-xl font-black uppercase tracking-widest text-gray-200 text-center ml-24 sm:ml-0">
+                Зішкреби та виграй
+            </h1>
+        </div>
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-4 relative z-10 w-full max-w-lg mx-auto">
+        
+        <div class="w-full text-center metal-plate rounded-xl p-6 sm:p-8 shadow-metal relative">
+            <div class="rivet rivet-tl"></div><div class="rivet rivet-tr"></div>
+            <div class="rivet rivet-bl"></div><div class="rivet rivet-br"></div>
+            
+            <svg class="w-16 h-16 mx-auto text-brand-orange mb-4 drop-shadow-[0_0_10px_rgba(255,92,0,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            
+            <h2 class="text-2xl font-black uppercase mb-2 text-white">Твій Подарунок</h2>
+            <p id="instruction-text" class="text-gray-300 mb-6 font-medium text-sm sm:text-base">Зішкреби іржу пальцем або мишкою, щоб побачити свій сюрприз!</p>
+            
+            <div class="bg-brand-dark p-2 rounded-lg border-2 border-gray-700 shadow-inner-dark mb-6">
+                <div id="scratch-container">
+                    
+                    <!-- Prize Content (Hidden Underneath) -->
+                    <div id="prize-content" class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-black">
+                        <p class="text-xs text-brand-orange uppercase font-bold mb-1 tracking-widest">Ти виграв:</p>
+                        <h3 id="prize-name" class="text-xl font-black text-white mb-2 leading-tight">...</h3>
+                        <div class="bg-gray-800 px-4 py-2 rounded border border-gray-600 w-full">
+                            <code id="prize-promo" class="text-xl font-black text-brand-orange tracking-wider">...</code>
+                        </div>
+                    </div>
+
+                    <!-- Scratch Canvas (Top Layer) -->
+                    <canvas id="scratch-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div id="action-area" class="opacity-0 transition-opacity duration-500 pointer-events-none h-0 overflow-hidden">
+                <button onclick="copyPromo()" class="w-full btn-orange-heavy rounded-lg py-4 text-lg font-black uppercase text-white tracking-widest flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    Скопіювати промокод
+                </button>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] bg-green-600 text-white px-6 py-3 border-2 border-green-800 shadow-[0_5px_15px_rgba(0,0,0,0.5)] font-bold transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none rounded uppercase tracking-wide">
+        Промокод скопійовано!
+    </div>
+
+    <script>
+        // --- 1. GAME DATA ---
+        const PRIZES = [
+            { id: 1, name: 'Знижка -5% на все', promo: 'PROMO5', weight: 50 },
+            { id: 2, name: 'Безкоштовна доставка', promo: 'FREEDELIVERY', weight: 30 },
+            { id: 3, name: 'Знижка -10% на все', promo: 'PROMO10', weight: 15 },
+            { id: 4, name: 'Секретний інструмент у подарунок', promo: 'SECRETGIFT', weight: 5 }
+        ];
+
+        const REVEAL_THRESHOLD = 0.6; // 60% scratched to reveal
+        const STORAGE_KEY = 'dniprom_scratch_prize';
+
+        // --- 2. STATE & DOM ---
+        let isDrawing = false;
+        let isRevealed = false;
+        let currentPrize = null;
+        let scratchCheckInterval = null;
+        let pixelsToCheck = 0;
+
+        const container = document.getElementById('scratch-container');
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        const elPrizeName = document.getElementById('prize-name');
+        const elPrizePromo = document.getElementById('prize-promo');
+        const elActionArea = document.getElementById('action-area');
+        const elInstructionText = document.getElementById('instruction-text');
+
+        // --- 3. LOGIC FUNCTIONS ---
+
+        function getRandomPrize() {
+            const totalWeight = PRIZES.reduce((sum, prize) => sum + prize.weight, 0);
+            let randomNum = Math.random() * totalWeight;
+            
+            for (const prize of PRIZES) {
+                if (randomNum < prize.weight) {
+                    return prize;
+                }
+                randomNum -= prize.weight;
+            }
+            return PRIZES[0]; // fallback
+        }
+
+        function initCanvas() {
+            // Set exact pixel dimensions based on container
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            pixelsToCheck = canvas.width * canvas.height;
+
+            // Draw procedural "Rust / Scratched Paint" texture
+            drawRustTexture();
+
+            // Set up scratch behavior
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 30; // Eraser size
+            ctx.globalCompositeOperation = 'destination-out';
+        }
+
+        function drawRustTexture() {
+            // Base orange color
+            ctx.fillStyle = '#cc4a00';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add industrial noise (darker rust and scratches)
+            for (let i = 0; i < 3000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#8b3300' : '#4d1c00';
+                ctx.fillRect(
+                    Math.random() * canvas.width, 
+                    Math.random() * canvas.height, 
+                    Math.random() * 3 + 1, 
+                    Math.random() * 3 + 1
+                );
+            }
+
+            // Draw metallic warning stripes on edges
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#111';
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            // Add Text
+            ctx.globalCompositeOperation = 'source-over'; // Switch back to normal drawing for text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 22px Montserrat, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Text shadow for readability
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillText('ЗІШКРЕБИ ІРЖУ', canvas.width / 2, canvas.height / 2);
+            
+            // Reset context settings for erasing
+            ctx.shadowColor = 'transparent';
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = 35; // Eraser size
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Handle both touch and mouse events
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startScratch(e) {
+            if (isRevealed) return;
+            isDrawing = true;
+            const pos = getPointerPos(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            
+            // Draw a single dot if user just taps
+            ctx.arc(pos.x, pos.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath(); // Reset for line drawing
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function scratch(e) {
+            if (!isDrawing || isRevealed) return;
+            e.preventDefault(); // Prevent scrolling on mobile while scratching
+            
+            const pos = getPointerPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            
+            // Throttle the check to avoid performance issues
+            if (!scratchCheckInterval) {
+                scratchCheckInterval = setTimeout(() => {
+                    checkRevealThreshold();
+                    scratchCheckInterval = null;
+                }, 100);
+            }
+        }
+
+        function stopScratch() {
+            isDrawing = false;
+        }
+
+        function checkRevealThreshold() {
+            if (isRevealed) return;
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let transparentCount = 0;
+            
+            // Check alpha channel of every pixel (every 4th value)
+            // Step by 4*4 to speed up calculation (we don't need 100% precision)
+            const step = 16; 
+            const totalPixelsToCheck = pixels.length / step;
+
+            for (let i = 3; i < pixels.length; i += step) {
+                if (pixels[i] < 128) {
+                    transparentCount++;
+                }
+            }
+            
+            const percentScratched = transparentCount / totalPixelsToCheck;
+            
+            if (percentScratched > REVEAL_THRESHOLD) {
+                triggerReveal();
+            }
+        }
+
+        function triggerReveal() {
+            isRevealed = true;
+            
+            // Fade out canvas
+            canvas.classList.add('canvas-fade-out');
+            
+            // Show action area
+            elActionArea.classList.remove('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden');
+            elActionArea.classList.add('mt-4', 'opacity-100');
+            
+            elInstructionText.textContent = "Вітаємо! Ось твій подарунок.";
+
+            // Save to localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(currentPrize));
+
+            // Trigger Confetti
+            fireConfetti();
+        }
+
+        function fireConfetti() {
+            const duration = 2000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#ff5c00', '#aaaaaa', '#ffffff'] // Brand orange and metal colors
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#ff5c00', '#aaaaaa', '#ffffff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        function copyPromo() {
+            const codeText = elPrizePromo.textContent;
+            
+            // Create temporary textarea for reliable copying even inside iframes
+            const textArea = document.createElement("textarea");
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                console.error('Copy failed', err);
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            toast.style.transform = 'translate(-50%, 0)';
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, -10px)';
+            }, 2500);
+        }
+
+        function initGame() {
+            // Check LocalStorage
+            const savedPrize = localStorage.getItem(STORAGE_KEY);
+            
+            if (savedPrize) {
+                // User already played
+                currentPrize = JSON.parse(savedPrize);
+                isRevealed = true;
+                
+                elPrizeName.textContent = currentPrize.name;
+                elPrizePromo.textContent = currentPrize.promo;
+                
+                // Hide canvas immediately
+                canvas.style.display = 'none';
+                
+                // Show actions
+                elActionArea.classList.remove('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden');
+                elActionArea.classList.add('mt-4', 'opacity-100');
+                elInstructionText.textContent = "Ти вже отримав свій подарунок!";
+                
+            } else {
+                // First time play
+                currentPrize = getRandomPrize();
+                elPrizeName.textContent = currentPrize.name;
+                elPrizePromo.textContent = currentPrize.promo;
+                
+                initCanvas();
+
+                // Attach Event Listeners to Canvas
+                canvas.addEventListener('mousedown', startScratch);
+                canvas.addEventListener('mousemove', scratch);
+                window.addEventListener('mouseup', stopScratch);
+
+                canvas.addEventListener('touchstart', startScratch, { passive: false });
+                canvas.addEventListener('touchmove', scratch, { passive: false });
+                window.addEventListener('touchend', stopScratch);
+            }
+        }
+
+        // Start everything when DOM and fonts are ready (to ensure text on canvas renders properly)
+        window.addEventListener('load', () => {
+            // Small delay to ensure custom fonts applied before drawing on canvas
+            setTimeout(initGame, 100); 
+        });
+
+    </script>
+</body>
+</html>
